@@ -3,18 +3,23 @@ services:
     name: smart-sell-advisor
     env: python
     plan: free
-    pythonVersion: "3.9.0"
+
     buildCommand: |
       pip install --upgrade pip setuptools wheel
       pip install -r requirements.txt
       mkdir -p models/trained static templates
+
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 2 --threads 4 app:app
+
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
       - key: FLASK_ENV
         value: production
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHONUNBUFFERED
         value: "true"
+
     healthCheckPath: /api/health
     autoDeploy: true
