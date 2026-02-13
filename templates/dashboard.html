@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Sell Advisor - Dashboard</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        
+        body {
+            background: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .unit {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .risk-meter {
+            height: 20px;
+            background: linear-gradient(to right, #27ae60, #f39c12, #e74c3c);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .risk-indicator {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .decision-box {
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+        
+        .decision-sell {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .decision-hold {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .decision-monitor {
+            background: linear-gradient(135deg, #f39c12, #d35400);
+        }
+        
+        /* UPDATED: Confidence Circle Styles - Fixed Layout */
+        .confidence-container {
+            text-align: center;
+            padding: 15px 0;
+        }
+        
+        .confidence-circle {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin: 0 auto;
+        }
+        
+        .confidence-svg {
+            transform: rotate(-90deg);
+        }
+        
+        .circle-bg {
+            fill: none;
+            stroke: #e6e9f0;
+            stroke-width: 12;
+        }
+        
+        .confidence-fill {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+        
+        .confidence-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+        
+        .confidence-percentage {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0;
+        }
+        
+        .confidence-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #4f46e5;
+            margin-top: 5px;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Confidence colors */
+        .confidence-high { 
+            color: #27ae60 !important; 
+            stroke: #27ae60 !important; 
+        }
+        .confidence-medium { 
+            color: #f39c12 !important; 
+            stroke: #f39c12 !important; 
+        }
+        .confidence-low { 
+            color: #e74c3c !important; 
+            stroke: #e74c3c !important; 
+        }
+        
+        /* Pulsing animation for high confidence */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .confidence-pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        .confidence-details {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+        
+        .confidence-item {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 8px;
+            font-size: 14px;
+            color: #475569;
+        }
+        
+        .checkmark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            margin-right: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+        
+        .btn {
+            border-radius: 8px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-low { background: #d4edda; color: #155724; }
+        .status-moderate { background: #fff3cd; color: #856404; }
+        .status-high { background: #f8d7da; color: #721c24; }
+        .status-critical { background: #721c24; color: white; }
+        
+        /* New styles for confidence factors */
+        .confidence-factors {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-wheat-alt"></i> Smart Sell Advisor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <!-- Main Container -->
+    <div class="container mt-4">
+        <!-- Dashboard Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h1 class="h3 mb-2">Wheat Storage Dashboard</h1>
+                                <p class="text-muted mb-0">Real-time monitoring and AI recommendations</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-primary" onclick="loadCurrentStatus()" id="refreshBtn">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#manualModal">
+                                    <i class="fas fa-edit"></i> Manual Input
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Row -->
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-4">
+                <!-- Current Conditions -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="fas fa-thermometer-half"></i> Current Conditions</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="currentConditions">
+                            <div class="text-center py-4">
+                                <div class="loading"></div>
+                                <p class="mt-2">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UPDATED: Confidence Score Card -->
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0"><i class="fas fa-brain"></i> Analysis Confidence</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="confidence-container">
+                            <div class="confidence-circle">
+                                <svg width="180" height="180" class="confidence-svg">
+                                    <!-- Background circle -->
+                                    <circle cx="90" cy="90" r="80" class="circle-bg"/>
+                                    <!-- Progress circle - will be updated by JS -->
+                                    <circle cx="90" cy="90" r="80" class="confidence-fill" 
+                                            id="confidenceRing" stroke="#3498db"/>
+                                </svg>
+                                <div class="confidence-text">
+                                    <div class="confidence-percentage" id="confidenceValue">0%</div>
+                                    <div class="confidence-label">Confidence Score</div>
+                                </div>
+                            </div>
+                            
+                            <div class="confidence-factors">
+                                <div class="mb-2">Based on data quality & AI analysis</div>
+                                <div id="confidenceFactors" class="d-flex justify-content-center flex-wrap">
+                                    <!-- Factors will be inserted here by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Storage Status -->
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0"><i class="fas fa-box"></i> Storage Status</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="storageStatus">
+                            <p class="text-muted">Waiting for analysis...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="loadCurrentStatus()">
+                                <i class="fas fa-sync-alt"></i> Update Analysis
+                            </button>
+                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#manualModal">
+                                <i class="fas fa-edit"></i> Enter Values
+                            </button>
+                            <button class="btn btn-info" onclick="loadHistoricalData()">
+                                <i class="fas fa-history"></i> View History
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetData()">
+                                <i class="fas fa-redo"></i> Reset Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-8">
+                <!-- AI Recommendation -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h4 class="mb-0"><i class="fas fa-robot"></i> AI Recommendation</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="recommendation">
+                            <div class="text-center py-4">
+                                <div class="loading"></div>
+                                <p class="mt-2">Analyzing...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Forecast -->
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0"><i class="fas fa-chart-line"></i> Price Forecast</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                        <div id="priceStats" class="mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- Market Analysis -->
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Market Analysis</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="marketAnalysis">
+                            <p class="text-muted">Loading market data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Report -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h4 class="mb-0"><i class="fas fa-file-alt"></i> Detailed Report</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="detailedReport" style="max-height: 300px; overflow-y: auto;">
+                            <p class="text-muted">Complete report will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Input Modal -->
+    <div class="modal fade" id="manualModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manual Storage Analysis</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="manualForm">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Temperature (°C)</label>
+                                    <input type="number" class="form-control" id="manualTemp" 
+                                           value="25" step="0.1" min="10" max="50" required>
+                                    <div class="form-text">Ideal: 20-25°C</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Humidity (%)</label>
+                                    <input type="number" class="form-control" id="manualHumidity" 
+                                           value="65" step="0.1" min="20" max="100" required>
+                                    <div class="form-text">Ideal: 60-70%</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">CO₂ (PPM)</label>
+                                    <input type="number" class="form-control" id="manualCO2" 
+                                           value="800" step="1" min="300" max="5000" required>
+                                    <div class="form-text">Ideal: < 1000 PPM</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Wheat Quantity (Quintal)</label>
+                                    <input type="number" class="form-control" id="manualQuantity" 
+                                           value="1000" step="1" min="1" required>
+                                    <div class="form-text">1 quintal = 100 kg</div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="manualResult"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitManualAnalysis()" id="analyzeBtn">
+                        <i class="fas fa-chart-bar"></i> Analyze
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Dashboard JavaScript -->
+    <script>
+        // Global variables
+        const API_BASE = window.location.origin;
+        let priceChart = null;
+        let currentData = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard initialized');
+            
+            // Check for URL parameters (from manual input on home page)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('temp') && urlParams.has('hum') && urlParams.has('co2') && urlParams.has('qty')) {
+                // Auto-submit manual analysis
+                const manualData = {
+                    temperature: parseFloat(urlParams.get('temp')),
+                    humidity: parseFloat(urlParams.get('hum')),
+                    co2: parseFloat(urlParams.get('co2')),
+                    wheat_quantity: parseFloat(urlParams.get('qty'))
+                };
+                submitManualAnalysis(manualData);
+            } else {
+                // Load current status
+                loadCurrentStatus();
+            }
+            
+            // Load price forecast
+            loadPriceForecast();
+            
+            // Set auto-refresh every 30 seconds
+            setInterval(loadCurrentStatus, 30000);
+        });
+
+        // Load current status
+        async function loadCurrentStatus() {
+            try {
+                showLoading('refreshBtn', true);
+                
+                const response = await fetch(`${API_BASE}/api/current-status`);
+                const data = await response.json();
+                
+                if (data.status === 'no_data') {
+                    showNoDataMessage();
+                } else if (response.ok) {
+                    currentData = data;
+                    updateDashboard(data);
+                    showToast('Data updated successfully!', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to load data');
+                }
+            } catch (error) {
+                console.error('Error loading current status:', error);
+                showToast('Failed to load data: ' + error.message, 'error');
+            } finally {
+                showLoading('refreshBtn', false);
+            }
+        }
+
+        // Submit manual analysis
+        async function submitManualAnalysis(prefilledData = null) {
+            let manualData;
+            
+            if (prefilledData) {
+                manualData = prefilledData;
+                // Update form inputs
+                document.getElementById('manualTemp').value = manualData.temperature;
+                document.getElementById('manualHumidity').value = manualData.humidity;
+                document.getElementById('manualCO2').value = manualData.co2;
+                document.getElementById('manualQuantity').value = manualData.wheat_quantity;
+            } else {
+                // Get values from form
+                manualData = {
+                    temperature: parseFloat(document.getElementById('manualTemp').value),
+                    humidity: parseFloat(document.getElementById('manualHumidity').value),
+                    co2: parseFloat(document.getElementById('manualCO2').value),
+                    wheat_quantity: parseFloat(document.getElementById('manualQuantity').value)
+                };
+                
+                // Validate
+                if (isNaN(manualData.temperature) || manualData.temperature < 10 || manualData.temperature > 50) {
+                    showToast('Temperature must be between 10-50°C', 'error');
+                    return;
+                }
+                if (isNaN(manualData.humidity) || manualData.humidity < 20 || manualData.humidity > 100) {
+                    showToast('Humidity must be between 20-100%', 'error');
+                    return;
+                }
+                if (isNaN(manualData.co2) || manualData.co2 < 300 || manualData.co2 > 10000) {
+                    showToast('CO2 must be between 300-10000 PPM', 'error');
+                    return;
+                }
+                if (isNaN(manualData.wheat_quantity) || manualData.wheat_quantity < 1) {
+                    showToast('Enter valid wheat quantity', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                showLoading('analyzeBtn', true);
+                
+                const response = await fetch(`${API_BASE}/api/manual-input`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(manualData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Analysis failed');
+                }
+                
+                const data = await response.json();
+                currentData = data;
+                
+                // Update dashboard
+                updateDashboard(data);
+                
+                // Close modal if open
+                const modal = bootstrap.Modal.getInstance(document.getElementById('manualModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                showToast('Analysis completed successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error in manual analysis:', error);
+                showToast('Analysis error: ' + error.message, 'error');
+            } finally {
+                showLoading('analyzeBtn', false);
+            }
+        }
+
+        // Load price forecast
+        async function loadPriceForecast() {
+            try {
+                const response = await fetch(`${API_BASE}/api/price-forecast?days=30`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updatePriceChart(data);
+                    updatePriceStats(data);
+                }
+            } catch (error) {
+                console.error('Error loading price forecast:', error);
+            }
+        }
+
+        // Load historical data
+        async function loadHistoricalData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/historical?days=7`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast(`Loaded ${data.count} historical data points`, 'info');
+                }
+            } catch (error) {
+                console.error('Error loading historical data:', error);
+                showToast('Failed to load historical data', 'error');
+            }
+        }
+
+        // Reset all data
+        async function resetData() {
+            if (confirm('Are you sure you want to reset all data?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/reset`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        showToast('Data reset successfully', 'success');
+                        loadCurrentStatus();
+                        loadPriceForecast();
+                    }
+                } catch (error) {
+                    console.error('Error resetting data:', error);
+                    showToast('Failed to reset data', 'error');
+                }
+            }
+        }
+
+        // Update dashboard with data
+        function updateDashboard(data) {
+            updateCurrentConditions(data);
+            updateConfidenceScore(data);
+            updateStorageStatus(data);
+            updateRecommendation(data);
+            updateMarketAnalysis(data);
+            updateDetailedReport(data);
+        }
+
+        // UPDATED: Update confidence score with fixed layout
+        function updateConfidenceScore(data) {
+            const confidence = data.confidence_score || {score: 0, level: 'LOW'};
+            const score = confidence.score || 0;
+            const level = confidence.level || 'LOW';
+            
+            // Update circle progress
+            const circle = document.getElementById('confidenceRing');
+            const valueDisplay = document.getElementById('confidenceValue');
+            const factorsDisplay = document.getElementById('confidenceFactors');
+            
+            // Calculate circle fill (circumference = 2 * π * r)
+            const radius = 80; // From SVG circle r="80"
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (score / 100) * circumference;
+            
+            // Set circle properties
+            circle.style.strokeDasharray = `${circumference}`;
+            circle.style.strokeDashoffset = offset;
+            
+            // Set color based on score
+            let colorClass = 'confidence-low';
+            if (score >= 70) colorClass = 'confidence-high';
+            else if (score >= 50) colorClass = 'confidence-medium';
+            
+            // Apply color to circle
+            circle.className = `confidence-fill ${colorClass}`;
+            
+            // Update percentage text
+            valueDisplay.textContent = `${score}%`;
+            valueDisplay.className = `confidence-percentage ${colorClass}`;
+            
+            // Add pulsing animation for high confidence
+            const confidenceCircle = document.querySelector('.confidence-circle');
+            if (score >= 85) {
+                confidenceCircle.classList.add('confidence-pulse');
+            } else {
+                confidenceCircle.classList.remove('confidence-pulse');
+            }
+            
+            // Update confidence factors
+            const breakdown = confidence.breakdown || {};
+            let factors = [];
+            
+            if (breakdown.ai_model_available) {
+                factors.push('<div class="confidence-item"><span class="checkmark">✓</span> AI Model</div>');
+            } else {
+                factors.push('<div class="confidence-item"><span class="checkmark" style="background: #f39c12;">⚠</span> Rule-Based</div>');
+            }
+            
+            if (breakdown.extreme_values) {
+                factors.push('<div class="confidence-item"><span class="checkmark" style="background: #f39c12;">⚠</span> Extreme Values</div>');
+            }
+            
+            if (breakdown.emergency_condition) {
+                factors.push('<div class="confidence-item"><span class="checkmark" style="background: #e74c3c;">🚨</span> Emergency</div>');
+            }
+            
+            if (breakdown.validation_impact >= 80) {
+                factors.push('<div class="confidence-item"><span class="checkmark">✓</span> Valid Data</div>');
+            } else if (breakdown.validation_impact >= 60) {
+                factors.push('<div class="confidence-item"><span class="checkmark" style="background: #f39c12;">⚠</span> Questionable</div>');
+            } else {
+                factors.push('<div class="confidence-item"><span class="checkmark" style="background: #e74c3c;">✗</span> Invalid Data</div>');
+            }
+            
+            factorsDisplay.innerHTML = factors.join('');
+        }
+
+        // Update current conditions
+        function updateCurrentConditions(data) {
+            const container = document.getElementById('currentConditions');
+            const sensorData = data.sensor_data || {};
+            const riskScore = data.risk_score || 0;
+            
+            let riskClass = 'status-low';
+            let riskText = 'LOW';
+            
+            if (riskScore >= 70) {
+                riskClass = 'status-critical';
+                riskText = 'CRITICAL';
+            } else if (riskScore >= 50) {
+                riskClass = 'status-high';
+                riskText = 'HIGH';
+            } else if (riskScore >= 30) {
+                riskClass = 'status-moderate';
+                riskText = 'MODERATE';
+            }
+            
+            container.innerHTML = `
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <div class="sensor-value">${sensorData.temperature?.toFixed(1) || '--'}</div>
+                        <div class="unit">°C</div>
+                        <small>Temperature</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="sensor-value">${sensorData.humidity?.toFixed(1) || '--'}</div>
+                        <div class="unit">%</div>
+                        <small>Humidity</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="sensor-value">${sensorData.co2 ? Math.round(sensorData.co2) : '--'}</div>
+                        <div class="unit">PPM</div>
+                        <small>CO₂</small>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Risk Level:</span>
+                        <span class="${riskClass} status-badge">${riskText}</span>
+                    </div>
+                    <div class="risk-meter">
+                        <div class="risk-indicator" style="width: ${riskScore}%"></div>
+                    </div>
+                    <div class="text-end">
+                        <small>Score: ${riskScore}/100</small>
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-muted small">
+                    <i class="fas fa-clock"></i> Last updated: ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+        }
+
+        // Update storage status
+        function updateStorageStatus(data) {
+            const container = document.getElementById('storageStatus');
+            const analysis = data.storage_analysis || {};
+            const safeDays = analysis.safe_days || 0;
+            
+            const progressPercent = Math.min(100, (safeDays / 45) * 100);
+            let progressColor = 'bg-success';
+            if (safeDays < 7) progressColor = 'bg-danger';
+            else if (safeDays < 14) progressColor = 'bg-warning';
+            
+            container.innerHTML = `
+                <h5>Safe Storage Days</h5>
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar ${progressColor} progress-bar-striped" 
+                         style="width: ${progressPercent}%">
+                        ${safeDays} days
+                    </div>
+                </div>
+                
+                <h5>Recommendations</h5>
+                <div class="alert alert-info">
+                    <ul class="mb-0">
+                        ${(analysis.recommendations || ['No recommendations available']).map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Update recommendation
+        function updateRecommendation(data) {
+            const container = document.getElementById('recommendation');
+            const decision = data.decision || {};
+            
+            let decisionClass = 'decision-monitor';
+            if (decision.action?.includes('SELL')) {
+                decisionClass = 'decision-sell';
+            } else if (decision.action?.includes('CONTINUE') || decision.action?.includes('HOLD')) {
+                decisionClass = 'decision-hold';
+            }
+            
+            container.innerHTML = `
+                <div class="${decisionClass} decision-box">
+                    <h2 class="mb-3">${decision.action || 'No Decision'}</h2>
+                    <p class="lead">${decision.reason || 'Insufficient data'}</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="bg-white rounded p-3 text-dark mb-3">
+                                <h5>Recommended Action Day</h5>
+                                <h2 class="text-primary">${decision.recommended_action_day || '--'}</h2>
+                                <small>Days from now</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-white rounded p-3 text-dark mb-3">
+                                <h5>Expected Price</h5>
+                                <h2 class="text-success">₹${decision.expected_price_per_quintal?.toFixed(2) || '--'}</h2>
+                                <small>Per quintal</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded p-3 text-dark">
+                        <h5>Expected Total Value</h5>
+                        <h3 class="text-success">₹${decision.expected_total_value?.toLocaleString('en-IN') || '--'}</h3>
+                        <small>For your wheat quantity</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update market analysis
+        function updateMarketAnalysis(data) {
+            const container = document.getElementById('marketAnalysis');
+            const forecast = data.price_forecast || {};
+            const stats = forecast.statistics || {};
+            
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body text-center">
+                                <h6>Market Trend</h6>
+                                <h3 class="${stats.trend === 'UPWARD' ? 'text-success' : 'text-danger'}">
+                                    ${stats.trend || '--'}
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body text-center">
+                                <h6>Volatility</h6>
+                                <h3 class="${stats.volatility_percentage > 10 ? 'text-warning' : 'text-info'}">
+                                    ${stats.volatility_percentage?.toFixed(1) || '--'}%
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6>Max Price</h6>
+                                <h5 class="text-success">₹${stats.max_expected_price?.toFixed(2) || '--'}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6>Avg Price</h6>
+                                <h5>₹${stats.average_expected_price?.toFixed(2) || '--'}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6>Min Price</h6>
+                                <h5 class="text-danger">₹${stats.min_expected_price?.toFixed(2) || '--'}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update detailed report
+        function updateDetailedReport(data) {
+            const container = document.getElementById('detailedReport');
+            const report = data.detailed_report || 'No detailed report available.';
+            
+            container.innerHTML = `
+                <div class="bg-light p-3 rounded">
+                    <pre style="white-space: pre-wrap; font-family: inherit; margin: 0; font-size: 0.9rem;">${report}</pre>
+                </div>
+            `;
+        }
+
+        // Update price chart
+        function updatePriceChart(priceData) {
+            const ctx = document.getElementById('priceChart');
+            if (!ctx) return;
+            
+            const context = ctx.getContext('2d');
+            
+            // Destroy existing chart
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            const dates = priceData.dates || [];
+            const predictions = priceData.predictions || [];
+            const optimalIndex = priceData.statistics?.optimal_sell_day - 1 || 0;
+            
+            // Simplify dates for display
+            const displayDates = dates.map(date => {
+                const d = new Date(date);
+                return `${d.getDate()}/${d.getMonth() + 1}`;
+            });
+            
+            priceChart = new Chart(context, {
+                type: 'line',
+                data: {
+                    labels: displayDates,
+                    datasets: [{
+                        label: 'Price (₹/quintal)',
+                        data: predictions,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Best Sell Day',
+                        data: predictions.map((price, index) => index === optimalIndex ? price : null),
+                        borderColor: '#27ae60',
+                        backgroundColor: '#27ae60',
+                        borderWidth: 0,
+                        pointRadius: 6,
+                        showLine: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update price stats
+        function updatePriceStats(priceData) {
+            const container = document.getElementById('priceStats');
+            const stats = priceData.statistics || {};
+            
+            if (!stats.optimal_sell_day) return;
+            
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-lightbulb"></i> Insight</h6>
+                    <p class="mb-0">Best selling price expected on <strong>Day ${stats.optimal_sell_day}</strong> 
+                    at ₹${stats.max_expected_price?.toFixed(2)}/quintal. Market trend is <strong>${stats.trend?.toLowerCase() || 'stable'}</strong>.</p>
+                </div>
+            `;
+        }
+
+        // Show no data message
+        function showNoDataMessage() {
+            const container = document.getElementById('currentConditions');
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle"></i> No Data Available</h5>
+                    <p>No sensor data available. Please use manual input to get started.</p>
+                    <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#manualModal">
+                        <i class="fas fa-edit"></i> Enter Manual Data
+                    </button>
+                </div>
+            `;
+        }
+
+        // Show loading state
+        function showLoading(buttonId, show) {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                if (show) {
+                    button.innerHTML = '<div class="loading"></div>';
+                    button.disabled = true;
+                } else {
+                    if (buttonId === 'refreshBtn') {
+                        button.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                    } else if (buttonId === 'analyzeBtn') {
+                        button.innerHTML = '<i class="fas fa-chart-bar"></i> Analyze';
+                    }
+                    button.disabled = false;
+                }
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast show align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
+            toast.style.minWidth = '300px';
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        // Make functions globally available
+        window.loadCurrentStatus = loadCurrentStatus;
+        window.submitManualAnalysis = submitManualAnalysis;
+        window.loadHistoricalData = loadHistoricalData;
+        window.resetData = resetData;
+    </script>
+</body>
+</html>

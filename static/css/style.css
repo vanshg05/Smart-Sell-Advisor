@@ -1,0 +1,41 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f8f9fa;
+}
+
+.sensor-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.risk-meter {
+    height: 20px;
+    background: linear-gradient(to right, #28a745, #ffc107, #dc3545);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.risk-indicator {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.decision-box {
+    border-radius: 15px;
+    padding: 25px;
+    color: white;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.decision-sell {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.decision-hold {
+    background: linear-gradient(135deg, #28a745, #218838);
+}
+
+.decision-monitor {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+}

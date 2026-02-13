@@ -1,0 +1,1 @@
+smart sell for farmers
